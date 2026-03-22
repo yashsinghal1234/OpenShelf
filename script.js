@@ -265,6 +265,7 @@ function showBookDetails(book) {
 
 function populateBookDetails(book) {
     const info = book.volumeInfo;
+    const readUrl = getBookReadUrl(info);
 
     setTimeout(() => {
         bookDisplay.classList.remove('hidden');
@@ -312,7 +313,7 @@ function populateBookDetails(book) {
     if (info.printType) formatDetails.push(info.printType);
     if (info.pageCount) formatDetails.push(`${info.pageCount} pages`);
     if (info.publishedDate) {
-        const year = info.publishedDate.split('-')[0];
+        const year = String(info.publishedDate).split('-')[0];
         formatDetails.push(year);
     }
     if (info.industryIdentifiers) {
@@ -324,7 +325,11 @@ function populateBookDetails(book) {
     // Preview button - Always just open the external link
     previewBtn.innerHTML = 'Read Book <i class="fas fa-book-open"></i>';
     previewBtn.onclick = () => {
-        window.open(info.infoLink, '_blank');
+        const newTab = window.open(readUrl, '_blank', 'noopener,noreferrer');
+        if (!newTab) {
+            // Fallback for popup-blocked browsers
+            window.location.href = readUrl;
+        }
         showNotification('Opening book on Open Library...', 'info');
     };
     previewBtn.disabled = false;
@@ -340,6 +345,14 @@ function populateBookDetails(book) {
     } else {
         reviewSection.classList.add('hidden');
     }
+}
+
+function getBookReadUrl(info) {
+    if (info?.infoLink && info.infoLink.startsWith('http')) return info.infoLink;
+    if (info?.previewLink && info.previewLink.startsWith('http')) return info.previewLink;
+    if (info?.openLibraryId) return `https://openlibrary.org${info.openLibraryId}`;
+    if (info?.title) return `https://openlibrary.org/search?q=${encodeURIComponent(info.title)}`;
+    return 'https://openlibrary.org/';
 }
 
 function setupPreviewControls(book) {
