@@ -156,8 +156,20 @@ function searchBooks() {
         });
 }
 
-// Transform Open Library book data to our format
+// Transform Open Library book data to our format with better descriptions
 function transformOpenLibraryBook(doc) {
+    // Get description from available fields
+    let description = 'No description available.';
+
+    // Try multiple sources for description
+    if (doc.first_sentence && doc.first_sentence.length > 0) {
+        description = doc.first_sentence.join(' ');
+    } else if (doc.subtitle) {
+        description = doc.subtitle;
+    } else if (doc.author_name && doc.author_name.length > 0) {
+        description = `By ${doc.author_name[0]}. A book from the Open Library collection.`;
+    }
+
     return {
         id: doc.key || doc.cover_edition_key || 'book_' + Math.random(),
         volumeInfo: {
@@ -166,7 +178,7 @@ function transformOpenLibraryBook(doc) {
             authors: doc.author_name || ['Unknown Author'],
             publisher: doc.publisher ? doc.publisher[0] : 'Unknown Publisher',
             publishedDate: doc.first_publish_year || 'Unknown',
-            description: doc.first_sentence ? doc.first_sentence.join(' ') : 'No description available.',
+            description: description,
             pageCount: doc.number_of_pages_median || null,
             language: doc.language ? doc.language[0] : 'en',
             imageLinks: {
@@ -180,9 +192,30 @@ function transformOpenLibraryBook(doc) {
             industryIdentifiers: doc.isbn ? [{ type: 'ISBN', identifier: doc.isbn[0] }] : [],
             openLibraryId: doc.key,
             hasFulltext: doc.has_fulltext || false,
-            ia: doc.ia || [] // Internet Archive identifiers for reading
+            ia: doc.ia || [], // Internet Archive identifiers for reading
+            workKey: doc.editions ? null : doc.keys ? null : doc.key.replace('/books/', '/works/')
         }
     };
+}
+
+// Fetch enhanced description from Open Library works API
+async function fetchEnhancedDescription(book) {
+    try {
+        const workKey = book.volumeInfo.workKey || book.id.replace('/books/', '/works/');
+        const response = await fetch(`https://openlibrary.org${workKey}.json`);
+        const data = await response.json();
+
+        if (data.description) {
+            // Handle both string and object descriptions
+            const desc = typeof data.description === 'string' ?
+                data.description :
+                data.description.value || 'No description available.';
+            book.volumeInfo.description = desc.length > 500 ? desc.substring(0, 500) + '...' : desc;
+        }
+    } catch (error) {
+        // Silently fail - use default description
+        console.log('Could not fetch enhanced description');
+    }
 }
 
 function displaySearchResults(books) {
@@ -221,6 +254,17 @@ function showBookDetails(book) {
     // Hide search results, show book display after a brief delay
     searchResults.classList.add('hidden');
     welcomeState.classList.add('hidden');
+
+    // Fetch enhanced description if available
+    fetchEnhancedDescription(book).then(() => {
+        populateBookDetails(book);
+    }).catch(() => {
+        populateBookDetails(book);
+    });
+}
+
+function populateBookDetails(book) {
+    const info = book.volumeInfo;
 
     setTimeout(() => {
         bookDisplay.classList.remove('hidden');
@@ -277,41 +321,13 @@ function showBookDetails(book) {
     }
     bookFormat.textContent = formatDetails.length > 0 ? formatDetails.join(', ') : 'Format information not available';
 
-    // Preview button - Open built-in reader if available
-    const iaIdentifiers = info.ia || [];
-    const bookKey = info.openLibraryId || '';
-    
-    if (iaIdentifiers && iaIdentifiers.length > 0) {
-        // Use Internet Archive
-        previewBtn.innerHTML = 'Read Book <i class="fas fa-book-open"></i>';
-        previewBtn.onclick = () => {
-            openBookReader(iaIdentifiers[0], info.title);
-        };
-        previewBtn.disabled = false;
-    } else if (bookKey) {
-        // Use Open Library reader
-        previewBtn.innerHTML = 'Read Book <i class="fas fa-book-open"></i>';
-        previewBtn.onclick = () => {
-            window.open(`https://openlibrary.org${bookKey}`, '_blank');
-            showNotification('Opening book on Open Library...', 'info');
-        };
-        previewBtn.disabled = false;
-    } else if (info.previewLink) {
-        // Use Google Books preview
-        previewBtn.innerHTML = 'Start reading <i class="fas fa-arrow-right"></i>';
-        previewBtn.onclick = () => {
-            window.open(info.previewLink, '_blank');
-            showNotification('Opening book preview...', 'info');
-        };
-        previewBtn.disabled = false;
-    } else {
-        previewBtn.innerHTML = 'View on Library';
-        previewBtn.onclick = () => {
-            window.open(`https://openlibrary.org/search?q=${encodeURIComponent(info.title)}`, '_blank');
-            showNotification('Searching for book...', 'info');
-        };
-        previewBtn.disabled = false;
-    }
+    // Preview button - Always just open the external link
+    previewBtn.innerHTML = 'Read Book <i class="fas fa-book-open"></i>';
+    previewBtn.onclick = () => {
+        window.open(info.infoLink, '_blank');
+        showNotification('Opening book on Open Library...', 'info');
+    };
+    previewBtn.disabled = false;
 
     // Setup action buttons
     setupActionButtons(book);
@@ -947,24 +963,10 @@ function closeBookReader() {
     }
 }
 
-function toggleFullscreen() {
-    const modal = document.getElementById('bookReaderModal');
-    if (!document.fullscreenElement) {
-        modal.requestFullscreen().catch(err => {
-            showNotification('Error entering fullscreen', 'error');
-        });
-    } else {
-        document.exitFullscreen();
-    }
-}
-
-// Close reader on Escape key
+// Close book details on Escape key
 document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
-        const readerModal = document.getElementById('bookReaderModal');
-        if (readerModal) {
-            closeBookReader();
-        } else if (!bookDisplay.classList.contains('hidden')) {
+        if (!bookDisplay.classList.contains('hidden')) {
             bookDisplay.classList.add('hidden');
             searchResults.classList.remove('hidden');
         }
