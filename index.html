@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>OpenShelf - Book Library</title>
+    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+
+<body>
+    <!-- Animated Book Loader -->
+    <div class="loader-container" id="bookLoader">
+        <div class="book">
+            <div class="book__pg-shadow"></div>
+            <div class="book__pg"></div>
+            <div class="book__pg book__pg--2"></div>
+            <div class="book__pg book__pg--3"></div>
+            <div class="book__pg book__pg--4"></div>
+            <div class="book__pg book__pg--5"></div>
+        </div>
+        <p class="loader-text">Loading books...</p>
+    </div>
+
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <div class="logo-container">
+                <div class="logo">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <span class="logo-text">OpenShelf</span>
+            </div>
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" title="Home">
+                    <i class="fas fa-home"></i>
+                </a>
+                <a href="#" class="nav-item" title="Library">
+                    <i class="fas fa-book"></i>
+                </a>
+                <a href="#" class="nav-item" title="Favorites">
+                    <i class="fas fa-clock"></i>
+                </a>
+                <a href="#" class="nav-item" title="Bookmarks">
+                    <i class="fas fa-bookmark"></i>
+                </a>
+                <a href="#" class="nav-item" title="Settings">
+                    <i class="fas fa-cog"></i>
+                </a>
+            </nav>
+            <div class="sidebar-footer">
+                <a href="#" class="nav-item" title="Menu">
+                    <i class="fas fa-bars"></i>
+                </a>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Search Header -->
+            <header class="search-header">
+                <div class="search-box">
+                    <i class="fas fa-search"></i>
+                    <input type="text" id="bookname" placeholder="Search book name, author, edition..."
+                        autocomplete="off" />
+                </div>
+                <div class="user-profile">
+                    <span class="user-name">Alexander Mark</span>
+                    <div class="avatar" onclick="toggleUserMenu()">AM</div>
+                    <i class="fas fa-bell"></i>
+                </div>
+
+                <!-- User Menu Dropdown -->
+                <div id="userMenu" class="user-menu" style="display: none;">
+                    <div class="user-menu-header">
+                        <div class="avatar-large">AM</div>
+                        <div>
+                            <p class="menu-user-name">Alexander Mark</p>
+                            <p class="menu-user-email">user@example.com</p>
+                        </div>
+                    </div>
+                    <div class="user-menu-divider"></div>
+                    <button onclick="logout()" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </button>
+                </div>
+            </header>
+
+            <!-- Book Display Section -->
+            <section id="bookDisplay" class="book-display hidden">
+                <div class="book-preview">
+                    <div class="preview-controls">
+                        <button class="control-btn"><i class="fas fa-chevron-up"></i></button>
+                        <button class="control-btn"><i class="fas fa-chevron-down"></i></button>
+                    </div>
+                    <div class="book-cover-container">
+                        <img id="bookCover" src="" alt="Book cover" class="book-cover" />
+                    </div>
+                </div>
+
+                <div class="book-details">
+                    <h1 id="bookTitle" class="book-title"></h1>
+                    <p id="bookAuthor" class="book-author"></p>
+                    <p id="bookSubtitle" class="book-subtitle"></p>
+
+                    <div class="action-buttons">
+                        <button id="previewBtn" class="btn-primary">
+                            Start reading <i class="fas fa-arrow-right"></i>
+                        </button>
+                        <button class="btn-icon" title="Add to bookmarks" onclick="handleBookmarkClick()">
+                            <i class="far fa-bookmark" id="bookmarkIcon"></i>
+                        </button>
+                        <button class="btn-icon" title="Share" onclick="handleShareClick()">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                        <button class="btn-icon" title="Add to library" onclick="handleDownloadClick()">
+                            <i class="far fa-heart" id="heartIcon"></i>
+                        </button>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="info-section">
+                            <h3>Description</h3>
+                            <p id="bookDescription" class="description-text"></p>
+
+                            <div id="reviewSection" class="review-section hidden">
+                                <div class="reviewer-info">
+                                    <div class="reviewer-avatar">RJ</div>
+                                    <div>
+                                        <p class="reviewer-name">Roberto Jordan</p>
+                                        <p id="reviewText" class="review-text"></p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="metadata-section">
+                            <div class="metadata-group">
+                                <h3>Editors</h3>
+                                <p id="bookEditors" class="metadata-text"></p>
+                            </div>
+
+                            <div class="metadata-group">
+                                <h3>Language</h3>
+                                <p id="bookLanguage" class="metadata-text"></p>
+                            </div>
+
+                            <div class="metadata-group">
+                                <h3>Format</h3>
+                                <p id="bookFormat" class="metadata-text"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Search Results Grid -->
+            <section id="searchResults" class="search-results">
+                <div id="loadingMsg" class="message-box"></div>
+                <div id="bookResults" class="results-grid"></div>
+            </section>
+
+            <!-- Welcome State -->
+            <section id="welcomeState" class="welcome-state">
+                <div class="welcome-content">
+                    <i class="fas fa-book-reader welcome-icon"></i>
+                    <h2>Discover Your Next Great Read</h2>
+                    <p>Search for books by title, author, or topic to explore previews from Google Books</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+
+</html>
